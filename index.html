@@ -13,8 +13,6 @@ background:#313338;
 color:white;
 }
 
-/* LOGIN SCREEN */
-
 #loginScreen{
 height:100vh;
 display:flex;
@@ -25,13 +23,11 @@ justify-content:center;
 button{
 background:#5865F2;
 border:none;
-padding:12px 18px;
-border-radius:8px;
+padding:10px 16px;
+border-radius:6px;
 color:white;
 cursor:pointer;
 }
-
-/* APP */
 
 #app{
 display:none;
@@ -43,99 +39,46 @@ display:flex;
 height:100%;
 }
 
-/* SERVERS COLUMN */
+/* LEFT SIDEBAR */
 
-#servers{
-width:72px;
-background:#1e1f22;
-display:flex;
-flex-direction:column;
-align-items:center;
-padding-top:10px;
-position:relative;
-}
-
-#profileButton{
-width:48px;
-height:48px;
-border-radius:50%;
-overflow:hidden;
-cursor:pointer;
-margin-bottom:10px;
-}
-
-#profilePic{
-width:100%;
-height:100%;
-object-fit:cover;
-}
-
-/* ACCOUNT MENU */
-
-#accountMenu{
-position:absolute;
-top:70px;
-left:80px;
-background:#2b2d31;
-padding:10px;
-border-radius:8px;
-display:none;
-flex-direction:column;
-gap:6px;
-z-index:10;
-}
-
-#accountMenu button{
-background:#383a40;
-width:150px;
-}
-
-.danger{
-background:#b33;
-}
-
-/* CHANNELS */
-
-#channels{
-width:240px;
+#sidebar{
+width:260px;
 background:#2b2d31;
 padding:15px;
+overflow-y:auto;
 }
 
-.channel{
-padding:6px;
-border-radius:6px;
+.user{
+padding:8px;
 cursor:pointer;
-color:#b5bac1;
+border-radius:6px;
 }
 
-.channel:hover{
+.user:hover{
 background:#3f4248;
-color:white;
 }
 
 /* CHAT */
 
 #chat{
 flex:1;
-background:#313338;
 display:flex;
 flex-direction:column;
+background:#313338;
 }
 
 #chatHeader{
-height:48px;
+height:50px;
 display:flex;
 align-items:center;
 padding-left:15px;
-border-bottom:1px solid #232428;
-font-weight:bold;
+border-bottom:1px solid #222;
 }
 
 #messages{
 flex:1;
-padding:20px;
 overflow-y:auto;
+padding:15px;
 }
 
 .message{
@@ -144,10 +87,7 @@ margin-bottom:10px;
 
 .messageUser{
 font-weight:bold;
-margin-right:6px;
 }
-
-/* MESSAGE INPUT */
 
 #messageBar{
 padding:15px;
@@ -156,47 +96,8 @@ padding:15px;
 #messageInput{
 width:100%;
 padding:12px;
+border:none;
 border-radius:8px;
-border:none;
-background:#383a40;
-color:white;
-}
-
-/* MEMBERS */
-
-#members{
-width:240px;
-background:#2b2d31;
-padding:15px;
-}
-
-/* ONBOARDING */
-
-#onboarding{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:rgba(0,0,0,0.7);
-display:none;
-align-items:center;
-justify-content:center;
-}
-
-#onboardBox{
-background:#2b2d31;
-padding:25px;
-width:300px;
-border-radius:12px;
-}
-
-input{
-width:100%;
-padding:10px;
-margin-bottom:10px;
-border:none;
-border-radius:6px;
 background:#383a40;
 color:white;
 }
@@ -214,60 +115,27 @@ color:white;
 
 <div id="layout">
 
-<div id="servers">
+<div id="sidebar">
 
-<div id="profileButton">
-<img id="profilePic">
-</div>
+<h3>Direct Messages</h3>
 
-<div id="accountMenu">
-<button id="logoutBtn">Log Out</button>
-<button id="deleteAccountBtn" class="danger">Delete Account</button>
-</div>
+<div id="userList"></div>
 
-</div>
-
-<div id="channels">
-<h3>TEXT CHANNELS</h3>
-<div class="channel"># general</div>
-<div class="channel"># media</div>
-<div class="channel"># gaming</div>
 </div>
 
 <div id="chat">
 
 <div id="chatHeader">
-# general
+Select a user to start chatting
 </div>
 
 <div id="messages"></div>
 
 <div id="messageBar">
-<input id="messageInput" placeholder="Message #general">
+<input id="messageInput" placeholder="Type message...">
 </div>
 
 </div>
-
-<div id="members">
-<h3>Members</h3>
-<div id="memberList"></div>
-</div>
-
-</div>
-
-</div>
-
-<div id="onboarding">
-
-<div id="onboardBox">
-
-<h2>Welcome to KAVNO</h2>
-
-<input id="username" placeholder="Username">
-<input id="displayName" placeholder="Display name">
-<input type="file" id="avatarUpload">
-
-<button id="finishSetup">Finish Setup</button>
 
 </div>
 
@@ -281,17 +149,21 @@ import {
 getAuth,
 GoogleAuthProvider,
 signInWithPopup,
-onAuthStateChanged,
-signOut,
-deleteUser
+onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 import {
 getFirestore,
+collection,
 doc,
 getDoc,
+getDocs,
+addDoc,
 setDoc,
-deleteDoc
+query,
+where,
+onSnapshot,
+orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -304,150 +176,164 @@ appId: "1:978146900809:web:15265ae75beca386353898"
 };
 
 const app = initializeApp(firebaseConfig);
+
 const auth = getAuth();
 const db = getFirestore();
 
 const provider = new GoogleAuthProvider();
 
+let currentDM=null;
+
 /* LOGIN */
 
-document.getElementById("googleLogin").onclick = () => {
+document.getElementById("googleLogin").onclick=()=>{
 
-signInWithPopup(auth, provider);
+signInWithPopup(auth,provider);
 
 };
 
-/* AUTH STATE */
+/* AUTH */
 
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth,user=>{
 
-if(!user) return;
+if(!user)return;
 
 document.getElementById("loginScreen").style.display="none";
 document.getElementById("app").style.display="block";
 
-const ref = doc(db,"users",user.uid);
-const snap = await getDoc(ref);
+loadUsers();
 
-if(!snap.exists()){
+});
 
-document.getElementById("onboarding").style.display="flex";
+/* LOAD USERS FOR DM */
 
-}else{
+async function loadUsers(){
 
-loadUser(snap.data());
+const usersSnap=await getDocs(collection(db,"users"));
+
+const list=document.getElementById("userList");
+
+list.innerHTML="";
+
+usersSnap.forEach(docSnap=>{
+
+const data=docSnap.data();
+
+if(docSnap.id===auth.currentUser.uid)return;
+
+const div=document.createElement("div");
+
+div.className="user";
+
+div.innerText=data.displayName;
+
+div.onclick=()=>openDM(docSnap.id,data.displayName);
+
+list.appendChild(div);
+
+});
+
+}
+
+/* OPEN DM */
+
+async function openDM(otherUID,name){
+
+document.getElementById("chatHeader").innerText=name;
+
+const q=query(collection(db,"dms"),where("members","array-contains",auth.currentUser.uid));
+
+const snap=await getDocs(q);
+
+let dmId=null;
+
+snap.forEach(d=>{
+
+const m=d.data().members;
+
+if(m.includes(otherUID))dmId=d.id;
+
+});
+
+if(!dmId){
+
+const newDM=await addDoc(collection(db,"dms"),{
+
+members:[auth.currentUser.uid,otherUID]
+
+});
+
+dmId=newDM.id;
+
+}
+
+currentDM=dmId;
+
+listenMessages(dmId);
+
+}
+
+/* SEND MESSAGE */
+
+document.getElementById("messageInput").addEventListener("keypress",async e=>{
+
+if(e.key==="Enter"){
+
+const text=e.target.value;
+
+if(!text||!currentDM)return;
+
+await addDoc(collection(db,"messages"),{
+
+dmId:currentDM,
+sender:auth.currentUser.uid,
+text:text,
+timestamp:Date.now()
+
+});
+
+e.target.value="";
 
 }
 
 });
 
-/* CLOUDINARY UPLOAD */
+/* LISTEN FOR MESSAGES */
 
-async function uploadAvatar(file){
+function listenMessages(dmId){
 
-const url = "https://api.cloudinary.com/v1_1/dhsj2x1co/image/upload";
+const q=query(
+collection(db,"messages"),
+where("dmId","==",dmId),
+orderBy("timestamp")
+);
 
-const form = new FormData();
+onSnapshot(q,snap=>{
 
-form.append("file",file);
-form.append("upload_preset","kavnoUploads");
+const messages=document.getElementById("messages");
 
-const res = await fetch(url,{
-method:"POST",
-body:form
-});
+messages.innerHTML="";
 
-const data = await res.json();
+snap.forEach(docSnap=>{
 
-return data.secure_url;
+const m=docSnap.data();
 
-}
+const div=document.createElement("div");
 
-/* ONBOARDING */
+div.className="message";
 
-document.getElementById("finishSetup").onclick = async () => {
+div.innerHTML=
+"<span class='messageUser'>"+m.sender+":</span> "+m.text;
 
-const user = auth.currentUser;
-
-const username = document.getElementById("username").value;
-const displayName = document.getElementById("displayName").value;
-
-const file = document.getElementById("avatarUpload").files[0];
-
-let avatar="";
-
-if(file){
-
-avatar = await uploadAvatar(file);
-
-}
-
-await setDoc(doc(db,"users",user.uid),{
-
-username,
-displayName,
-avatar,
-createdAt:Date.now()
+messages.appendChild(div);
 
 });
 
-document.getElementById("onboarding").style.display="none";
+messages.scrollTop=messages.scrollHeight;
 
-loadUser({
-username,
-displayName,
-avatar
 });
 
-};
-
-/* LOAD USER */
-
-function loadUser(data){
-
-document.getElementById("profilePic").src = data.avatar;
-
-document.getElementById("memberList").innerHTML =
-"<div>"+data.displayName+"</div>";
-
 }
-
-/* PROFILE MENU */
-
-document.getElementById("profileButton").onclick = () => {
-
-const menu = document.getElementById("accountMenu");
-
-menu.style.display =
-menu.style.display === "flex" ? "none" : "flex";
-
-};
-
-/* LOG OUT */
-
-document.getElementById("logoutBtn").onclick = () => {
-
-signOut(auth);
-
-location.reload();
-
-};
-
-/* DELETE ACCOUNT */
-
-document.getElementById("deleteAccountBtn").onclick = async () => {
-
-const user = auth.currentUser;
-
-await deleteDoc(doc(db,"users",user.uid));
-
-await deleteUser(user);
-
-alert("Account deleted");
-
-location.reload();
-
-};
 
 </script>
 
