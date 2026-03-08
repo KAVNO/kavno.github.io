@@ -13,7 +13,7 @@ background:#313338;
 color:white;
 }
 
-/* LOGIN */
+/* LOGIN SCREEN */
 
 #loginScreen{
 height:100vh;
@@ -25,14 +25,13 @@ justify-content:center;
 button{
 background:#5865F2;
 border:none;
-padding:12px 20px;
+padding:12px 18px;
 border-radius:8px;
 color:white;
 cursor:pointer;
-font-size:15px;
 }
 
-/* APP LAYOUT */
+/* APP */
 
 #app{
 display:none;
@@ -44,7 +43,7 @@ display:flex;
 height:100%;
 }
 
-/* SERVERS */
+/* SERVERS COLUMN */
 
 #servers{
 width:72px;
@@ -53,19 +52,46 @@ display:flex;
 flex-direction:column;
 align-items:center;
 padding-top:10px;
+position:relative;
 }
 
-.server{
+#profileButton{
 width:48px;
 height:48px;
-background:#5865F2;
 border-radius:50%;
-display:flex;
-align-items:center;
-justify-content:center;
-font-weight:bold;
-margin-bottom:10px;
+overflow:hidden;
 cursor:pointer;
+margin-bottom:10px;
+}
+
+#profilePic{
+width:100%;
+height:100%;
+object-fit:cover;
+}
+
+/* ACCOUNT MENU */
+
+#accountMenu{
+position:absolute;
+top:70px;
+left:80px;
+background:#2b2d31;
+padding:10px;
+border-radius:8px;
+display:none;
+flex-direction:column;
+gap:6px;
+z-index:10;
+}
+
+#accountMenu button{
+background:#383a40;
+width:150px;
+}
+
+.danger{
+background:#b33;
 }
 
 /* CHANNELS */
@@ -113,7 +139,7 @@ overflow-y:auto;
 }
 
 .message{
-margin-bottom:12px;
+margin-bottom:10px;
 }
 
 .messageUser{
@@ -121,7 +147,7 @@ font-weight:bold;
 margin-right:6px;
 }
 
-/* MESSAGE BAR */
+/* MESSAGE INPUT */
 
 #messageBar{
 padding:15px;
@@ -189,7 +215,16 @@ color:white;
 <div id="layout">
 
 <div id="servers">
-<div class="server">K</div>
+
+<div id="profileButton">
+<img id="profilePic">
+</div>
+
+<div id="accountMenu">
+<button id="logoutBtn">Log Out</button>
+<button id="deleteAccountBtn" class="danger">Delete Account</button>
+</div>
+
 </div>
 
 <div id="channels">
@@ -230,7 +265,6 @@ color:white;
 
 <input id="username" placeholder="Username">
 <input id="displayName" placeholder="Display name">
-
 <input type="file" id="avatarUpload">
 
 <button id="finishSetup">Finish Setup</button>
@@ -247,16 +281,18 @@ import {
 getAuth,
 GoogleAuthProvider,
 signInWithPopup,
-onAuthStateChanged
+onAuthStateChanged,
+signOut,
+deleteUser
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 import {
 getFirestore,
 doc,
 getDoc,
-setDoc
+setDoc,
+deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
 
 const firebaseConfig = {
 apiKey: "AIzaSyBnT085eVcbqRiWG_ohyDFc6mShIqRcFOM",
@@ -268,17 +304,20 @@ appId: "1:978146900809:web:15265ae75beca386353898"
 };
 
 const app = initializeApp(firebaseConfig);
-
 const auth = getAuth();
 const db = getFirestore();
 
 const provider = new GoogleAuthProvider();
+
+/* LOGIN */
 
 document.getElementById("googleLogin").onclick = () => {
 
 signInWithPopup(auth, provider);
 
 };
+
+/* AUTH STATE */
 
 onAuthStateChanged(auth, async user => {
 
@@ -302,6 +341,7 @@ loadUser(snap.data());
 
 });
 
+/* CLOUDINARY UPLOAD */
 
 async function uploadAvatar(file){
 
@@ -323,6 +363,7 @@ return data.secure_url;
 
 }
 
+/* ONBOARDING */
 
 document.getElementById("finishSetup").onclick = async () => {
 
@@ -360,13 +401,53 @@ avatar
 
 };
 
+/* LOAD USER */
 
 function loadUser(data){
+
+document.getElementById("profilePic").src = data.avatar;
 
 document.getElementById("memberList").innerHTML =
 "<div>"+data.displayName+"</div>";
 
 }
+
+/* PROFILE MENU */
+
+document.getElementById("profileButton").onclick = () => {
+
+const menu = document.getElementById("accountMenu");
+
+menu.style.display =
+menu.style.display === "flex" ? "none" : "flex";
+
+};
+
+/* LOG OUT */
+
+document.getElementById("logoutBtn").onclick = () => {
+
+signOut(auth);
+
+location.reload();
+
+};
+
+/* DELETE ACCOUNT */
+
+document.getElementById("deleteAccountBtn").onclick = async () => {
+
+const user = auth.currentUser;
+
+await deleteDoc(doc(db,"users",user.uid));
+
+await deleteUser(user);
+
+alert("Account deleted");
+
+location.reload();
+
+};
 
 </script>
 
