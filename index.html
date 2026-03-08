@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -8,40 +9,30 @@
 body{
 margin:0;
 font-family:Arial;
-background:#2b2b2b;
+background:#313338;
 color:white;
 }
 
-button{
-background:#444;
-border:none;
-padding:10px 18px;
-border-radius:10px;
-color:white;
-cursor:pointer;
-}
-
-button:hover{
-background:#555;
-}
-
-input{
-padding:10px;
-border-radius:8px;
-border:none;
-background:#3a3a3a;
-color:white;
-width:100%;
-box-sizing:border-box;
-margin-bottom:10px;
-}
+/* LOGIN */
 
 #loginScreen{
-display:flex;
 height:100vh;
+display:flex;
 align-items:center;
 justify-content:center;
 }
+
+button{
+background:#5865F2;
+border:none;
+padding:12px 20px;
+border-radius:8px;
+color:white;
+cursor:pointer;
+font-size:15px;
+}
+
+/* APP LAYOUT */
 
 #app{
 display:none;
@@ -53,22 +44,107 @@ display:flex;
 height:100%;
 }
 
+/* SERVERS */
+
 #servers{
-width:70px;
-background:#202020;
+width:72px;
+background:#1e1f22;
+display:flex;
+flex-direction:column;
+align-items:center;
+padding-top:10px;
 }
 
+.server{
+width:48px;
+height:48px;
+background:#5865F2;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+font-weight:bold;
+margin-bottom:10px;
+cursor:pointer;
+}
+
+/* CHANNELS */
+
 #channels{
-width:220px;
-background:#333;
+width:240px;
+background:#2b2d31;
 padding:15px;
 }
 
+.channel{
+padding:6px;
+border-radius:6px;
+cursor:pointer;
+color:#b5bac1;
+}
+
+.channel:hover{
+background:#3f4248;
+color:white;
+}
+
+/* CHAT */
+
 #chat{
 flex:1;
-background:#2f2f2f;
-padding:20px;
+background:#313338;
+display:flex;
+flex-direction:column;
 }
+
+#chatHeader{
+height:48px;
+display:flex;
+align-items:center;
+padding-left:15px;
+border-bottom:1px solid #232428;
+font-weight:bold;
+}
+
+#messages{
+flex:1;
+padding:20px;
+overflow-y:auto;
+}
+
+.message{
+margin-bottom:12px;
+}
+
+.messageUser{
+font-weight:bold;
+margin-right:6px;
+}
+
+/* MESSAGE BAR */
+
+#messageBar{
+padding:15px;
+}
+
+#messageInput{
+width:100%;
+padding:12px;
+border-radius:8px;
+border:none;
+background:#383a40;
+color:white;
+}
+
+/* MEMBERS */
+
+#members{
+width:240px;
+background:#2b2d31;
+padding:15px;
+}
+
+/* ONBOARDING */
 
 #onboarding{
 position:fixed;
@@ -83,10 +159,20 @@ justify-content:center;
 }
 
 #onboardBox{
-background:#2f2f2f;
+background:#2b2d31;
 padding:25px;
 width:300px;
-border-radius:14px;
+border-radius:12px;
+}
+
+input{
+width:100%;
+padding:10px;
+margin-bottom:10px;
+border:none;
+border-radius:6px;
+background:#383a40;
+color:white;
 }
 
 </style>
@@ -102,14 +188,34 @@ border-radius:14px;
 
 <div id="layout">
 
-<div id="servers"></div>
+<div id="servers">
+<div class="server">K</div>
+</div>
 
 <div id="channels">
-<h3 id="usernameDisplay"></h3>
+<h3>TEXT CHANNELS</h3>
+<div class="channel"># general</div>
+<div class="channel"># media</div>
+<div class="channel"># gaming</div>
 </div>
 
 <div id="chat">
-<h2>Welcome to KAVNO</h2>
+
+<div id="chatHeader">
+# general
+</div>
+
+<div id="messages"></div>
+
+<div id="messageBar">
+<input id="messageInput" placeholder="Message #general">
+</div>
+
+</div>
+
+<div id="members">
+<h3>Members</h3>
+<div id="memberList"></div>
 </div>
 
 </div>
@@ -153,17 +259,16 @@ setDoc
 
 
 const firebaseConfig = {
-
-  apiKey: "AIzaSyBnT085eVcbqRiWG_ohyDFc6mShIqRcFOM",
-  authDomain: "kavno-8e9ea.firebaseapp.com",
-  projectId: "kavno-8e9ea",
-  storageBucket: "kavno-8e9ea.firebasestorage.app",
-  messagingSenderId: "978146900809",
-  appId: "1:978146900809:web:15265ae75beca386353898"
-
+apiKey: "AIzaSyBnT085eVcbqRiWG_ohyDFc6mShIqRcFOM",
+authDomain: "kavno-8e9ea.firebaseapp.com",
+projectId: "kavno-8e9ea",
+storageBucket: "kavno-8e9ea.firebasestorage.app",
+messagingSenderId: "978146900809",
+appId: "1:978146900809:web:15265ae75beca386353898"
 };
 
 const app = initializeApp(firebaseConfig);
+
 const auth = getAuth();
 const db = getFirestore();
 
@@ -182,16 +287,16 @@ if(!user) return;
 document.getElementById("loginScreen").style.display="none";
 document.getElementById("app").style.display="block";
 
-const userRef = doc(db,"users",user.uid);
-const userSnap = await getDoc(userRef);
+const ref = doc(db,"users",user.uid);
+const snap = await getDoc(ref);
 
-if(!userSnap.exists()){
+if(!snap.exists()){
 
 document.getElementById("onboarding").style.display="flex";
 
 }else{
 
-loadUser(userSnap.data());
+loadUser(snap.data());
 
 }
 
@@ -219,7 +324,6 @@ return data.secure_url;
 }
 
 
-
 document.getElementById("finishSetup").onclick = async () => {
 
 const user = auth.currentUser;
@@ -239,9 +343,9 @@ avatar = await uploadAvatar(file);
 
 await setDoc(doc(db,"users",user.uid),{
 
-username:username,
-displayName:displayName,
-avatar:avatar,
+username,
+displayName,
+avatar,
 createdAt:Date.now()
 
 });
@@ -257,11 +361,10 @@ avatar
 };
 
 
-
 function loadUser(data){
 
-document.getElementById("usernameDisplay").innerText =
-data.displayName + " @" + data.username;
+document.getElementById("memberList").innerHTML =
+"<div>"+data.displayName+"</div>";
 
 }
 
@@ -269,3 +372,4 @@ data.displayName + " @" + data.username;
 
 </body>
 </html>
+```
