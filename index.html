@@ -1,207 +1,271 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Kavno</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs, query, orderBy, updateDoc, doc, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+<title>KAVNO</title>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBnT085eVcbqRiWG_ohyDFc6mShIqRcFOM",
-      authDomain: "kavno-8e9ea.firebaseapp.com",
-      projectId: "kavno-8e9ea",
-      storageBucket: "kavno-8e9ea.firebasestorage.app",
-      messagingSenderId: "978146900809",
-      appId: "1:978146900809:web:15265ae75beca386353898"
-    };
+<style>
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const provider = new GoogleAuthProvider();
+body{
+margin:0;
+font-family:Arial;
+background:#2b2b2b;
+color:white;
+}
 
-    window.login = () => signInWithPopup(auth, provider);
-    window.logout = () => signOut(auth);
+button{
+background:#444;
+border:none;
+padding:10px 18px;
+border-radius:10px;
+color:white;
+cursor:pointer;
+}
 
-    onAuthStateChanged(auth, user => {
-      const right = document.getElementById("rightNav");
-      if (user) {
-        right.innerHTML = `
-          <a href="create.html" class="createBtn">+</a>
-          <img src="${user.photoURL}" class="avatar">
-          <button onclick="logout()">Logout</button>
-        `;
-      } else {
-        right.innerHTML = `<button onclick="login()">Log In</button>`;
-      }
-    });
+button:hover{
+background:#555;
+}
 
-    async function loadPosts() {
-      const feed = document.getElementById("feed");
-      feed.innerHTML = "";
-      const q = query(collection(db, "posts"), orderBy("created", "desc"));
-      const snapshot = await getDocs(q);
+input{
+padding:10px;
+border-radius:8px;
+border:none;
+background:#3a3a3a;
+color:white;
+width:100%;
+box-sizing:border-box;
+margin-bottom:10px;
+}
 
-      snapshot.forEach(docSnap => {
-        const data = docSnap.data();
-        const postId = docSnap.id;
+#loginScreen{
+display:flex;
+height:100vh;
+align-items:center;
+justify-content:center;
+}
 
-        const post = document.createElement("div");
-        post.className = "postCard";
+#app{
+display:none;
+height:100vh;
+}
 
-        post.innerHTML = `
-          <div class="voteColumn">
-            <button onclick="vote('${postId}',1)">▲</button>
-            <div id="score-${postId}">${data.score || 0}</div>
-            <button onclick="vote('${postId}',-1)">▼</button>
-          </div>
-          <div class="postContent">
-            <div class="genreTag">${data.genre || "Other"}</div>
-            <h3>${data.title}</h3>
-            ${data.media ? `<img src="${data.media}" class="postImage">` : ""}
-            <p>${data.body || ""}</p>
-          </div>
-        `;
-        feed.appendChild(post);
-      });
-    }
+#layout{
+display:flex;
+height:100%;
+}
 
-    window.vote = async (id, value) => {
-      const postRef = doc(db, "posts", id);
-      await updateDoc(postRef, { score: increment(value) });
-      loadPosts();
-    };
+#servers{
+width:70px;
+background:#202020;
+}
 
-    window.addEventListener("DOMContentLoaded", loadPosts);
-  </script>
+#channels{
+width:220px;
+background:#333;
+padding:15px;
+}
 
-  <style>
-    body {
-      margin: 0;
-      background: #030303;
-      font-family: Arial, sans-serif;
-      color: white;
-    }
+#chat{
+flex:1;
+background:#2f2f2f;
+padding:20px;
+}
 
-    .navbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 20px;
-      background: #111;
-      border-bottom: 1px solid #222;
-    }
+#onboarding{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.7);
+display:none;
+align-items:center;
+justify-content:center;
+}
 
-    .logo {
-      font-weight: bold;
-      font-size: 20px;
-      color: #ff914d;
-    }
+#onboardBox{
+background:#2f2f2f;
+padding:25px;
+width:300px;
+border-radius:14px;
+}
 
-    .layout {
-      display: grid;
-      grid-template-columns: 240px 1fr 300px;
-      gap: 20px;
-      max-width: 1200px;
-      margin: 20px auto;
-    }
-
-    .sidebar, .rightbar {
-      background: #111;
-      padding: 15px;
-      border-radius: 8px;
-    }
-
-    #feed {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-
-    .postCard {
-      display: flex;
-      background: #111;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-
-    .voteColumn {
-      background: #0d0d0d;
-      width: 50px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 10px 0;
-      gap: 5px;
-    }
-
-    .voteColumn button {
-      background: none;
-      border: none;
-      color: white;
-      cursor: pointer;
-    }
-
-    .postContent {
-      padding: 15px;
-      flex: 1;
-    }
-
-    .postImage {
-      width: 100%;
-      border-radius: 6px;
-      margin-top: 10px;
-    }
-
-    .genreTag {
-      font-size: 12px;
-      background: linear-gradient(to right, #ff914d, #ff6100);
-      padding: 3px 8px;
-      border-radius: 4px;
-      display: inline-block;
-      margin-bottom: 6px;
-    }
-
-    .createBtn {
-      background: linear-gradient(to right, #ff914d, #ff6100);
-      padding: 8px 14px;
-      border-radius: 6px;
-      text-decoration: none;
-      color: white;
-      font-weight: bold;
-      margin-right: 10px;
-    }
-
-    .avatar {
-      width: 32px;
-      border-radius: 50%;
-      vertical-align: middle;
-      margin-right: 10px;
-    }
-  </style>
+</style>
 </head>
 
 <body>
-  <div class="navbar">
-    <div class="logo">KAVNO</div>
-    <div id="rightNav"></div>
-  </div>
 
-  <div class="layout">
-    <div class="sidebar">
-      <div>Home</div>
-      <div>Popular</div>
-      <div>Explore</div>
-    </div>
+<div id="loginScreen">
+<button id="googleLogin">Login with Google</button>
+</div>
 
-    <div id="feed"></div>
+<div id="app">
 
-    <div class="rightbar">
-      <h4>About Kavno</h4>
-      <p>Post freely. Vote fairly.</p>
-    </div>
-  </div>
+<div id="layout">
+
+<div id="servers"></div>
+
+<div id="channels">
+<h3 id="usernameDisplay"></h3>
+</div>
+
+<div id="chat">
+<h2>Welcome to KAVNO</h2>
+</div>
+
+</div>
+
+</div>
+
+<div id="onboarding">
+
+<div id="onboardBox">
+
+<h2>Welcome to KAVNO</h2>
+
+<input id="username" placeholder="Username">
+<input id="displayName" placeholder="Display name">
+
+<input type="file" id="avatarUpload">
+
+<button id="finishSetup">Finish Setup</button>
+
+</div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+
+import {
+getAuth,
+GoogleAuthProvider,
+signInWithPopup,
+onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+import {
+getFirestore,
+doc,
+getDoc,
+setDoc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+
+const firebaseConfig = {
+
+apiKey: "AIzaSyCAjWjAurT-TTbbo8P70Uo9IA5S6U1EAaM",
+authDomain: "yapaa-5f2b8.firebaseapp.com",
+projectId: "yapaa-5f2b8",
+storageBucket: "yapaa-5f2b8.firebasestorage.app",
+messagingSenderId: "508880150784",
+appId: "1:508880150784:web:42353862a32d9010ac13e5"
+
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth();
+const db = getFirestore();
+
+const provider = new GoogleAuthProvider();
+
+document.getElementById("googleLogin").onclick = () => {
+
+signInWithPopup(auth, provider);
+
+};
+
+onAuthStateChanged(auth, async user => {
+
+if(!user) return;
+
+document.getElementById("loginScreen").style.display="none";
+document.getElementById("app").style.display="block";
+
+const userRef = doc(db,"users",user.uid);
+const userSnap = await getDoc(userRef);
+
+if(!userSnap.exists()){
+
+document.getElementById("onboarding").style.display="flex";
+
+}else{
+
+loadUser(userSnap.data());
+
+}
+
+});
+
+
+async function uploadAvatar(file){
+
+const url = "https://api.cloudinary.com/v1_1/dhsj2x1co/image/upload";
+
+const form = new FormData();
+
+form.append("file",file);
+form.append("upload_preset","kavnoUploads");
+
+const res = await fetch(url,{
+method:"POST",
+body:form
+});
+
+const data = await res.json();
+
+return data.secure_url;
+
+}
+
+
+
+document.getElementById("finishSetup").onclick = async () => {
+
+const user = auth.currentUser;
+
+const username = document.getElementById("username").value;
+const displayName = document.getElementById("displayName").value;
+
+const file = document.getElementById("avatarUpload").files[0];
+
+let avatar="";
+
+if(file){
+
+avatar = await uploadAvatar(file);
+
+}
+
+await setDoc(doc(db,"users",user.uid),{
+
+username:username,
+displayName:displayName,
+avatar:avatar,
+createdAt:Date.now()
+
+});
+
+document.getElementById("onboarding").style.display="none";
+
+loadUser({
+username,
+displayName,
+avatar
+});
+
+};
+
+
+
+function loadUser(data){
+
+document.getElementById("usernameDisplay").innerText =
+data.displayName + " @" + data.username;
+
+}
+
+</script>
+
 </body>
 </html>
