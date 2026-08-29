@@ -1,342 +1,207 @@
-```html
 <!DOCTYPE html>
 <html>
 <head>
-<title>KAVNO</title>
+  <title>Kavno</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs, query, orderBy, updateDoc, doc, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-<style>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBnT085eVcbqRiWG_ohyDFc6mShIqRcFOM",
+      authDomain: "kavno-8e9ea.firebaseapp.com",
+      projectId: "kavno-8e9ea",
+      storageBucket: "kavno-8e9ea.firebasestorage.app",
+      messagingSenderId: "978146900809",
+      appId: "1:978146900809:web:15265ae75beca386353898"
+    };
 
-body{
-margin:0;
-font-family:Arial;
-background:#313338;
-color:white;
-}
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
 
-#loginScreen{
-height:100vh;
-display:flex;
-align-items:center;
-justify-content:center;
-}
+    window.login = () => signInWithPopup(auth, provider);
+    window.logout = () => signOut(auth);
 
-button{
-background:#5865F2;
-border:none;
-padding:10px 16px;
-border-radius:6px;
-color:white;
-cursor:pointer;
-}
+    onAuthStateChanged(auth, user => {
+      const right = document.getElementById("rightNav");
+      if (user) {
+        right.innerHTML = `
+          <a href="create.html" class="createBtn">+</a>
+          <img src="${user.photoURL}" class="avatar">
+          <button onclick="logout()">Logout</button>
+        `;
+      } else {
+        right.innerHTML = `<button onclick="login()">Log In</button>`;
+      }
+    });
 
-#app{
-display:none;
-height:100vh;
-}
+    async function loadPosts() {
+      const feed = document.getElementById("feed");
+      feed.innerHTML = "";
+      const q = query(collection(db, "posts"), orderBy("created", "desc"));
+      const snapshot = await getDocs(q);
 
-#layout{
-display:flex;
-height:100%;
-}
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const postId = docSnap.id;
 
-/* LEFT SIDEBAR */
+        const post = document.createElement("div");
+        post.className = "postCard";
 
-#sidebar{
-width:260px;
-background:#2b2d31;
-padding:15px;
-overflow-y:auto;
-}
+        post.innerHTML = `
+          <div class="voteColumn">
+            <button onclick="vote('${postId}',1)">▲</button>
+            <div id="score-${postId}">${data.score || 0}</div>
+            <button onclick="vote('${postId}',-1)">▼</button>
+          </div>
+          <div class="postContent">
+            <div class="genreTag">${data.genre || "Other"}</div>
+            <h3>${data.title}</h3>
+            ${data.media ? `<img src="${data.media}" class="postImage">` : ""}
+            <p>${data.body || ""}</p>
+          </div>
+        `;
+        feed.appendChild(post);
+      });
+    }
 
-.user{
-padding:8px;
-cursor:pointer;
-border-radius:6px;
-}
+    window.vote = async (id, value) => {
+      const postRef = doc(db, "posts", id);
+      await updateDoc(postRef, { score: increment(value) });
+      loadPosts();
+    };
 
-.user:hover{
-background:#3f4248;
-}
+    window.addEventListener("DOMContentLoaded", loadPosts);
+  </script>
 
-/* CHAT */
+  <style>
+    body {
+      margin: 0;
+      background: #030303;
+      font-family: Arial, sans-serif;
+      color: white;
+    }
 
-#chat{
-flex:1;
-display:flex;
-flex-direction:column;
-background:#313338;
-}
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      background: #111;
+      border-bottom: 1px solid #222;
+    }
 
-#chatHeader{
-height:50px;
-display:flex;
-align-items:center;
-padding-left:15px;
-border-bottom:1px solid #222;
-}
+    .logo {
+      font-weight: bold;
+      font-size: 20px;
+      color: #ff914d;
+    }
 
-#messages{
-flex:1;
-overflow-y:auto;
-padding:15px;
-}
+    .layout {
+      display: grid;
+      grid-template-columns: 240px 1fr 300px;
+      gap: 20px;
+      max-width: 1200px;
+      margin: 20px auto;
+    }
 
-.message{
-margin-bottom:10px;
-}
+    .sidebar, .rightbar {
+      background: #111;
+      padding: 15px;
+      border-radius: 8px;
+    }
 
-.messageUser{
-font-weight:bold;
-}
+    #feed {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
 
-#messageBar{
-padding:15px;
-}
+    .postCard {
+      display: flex;
+      background: #111;
+      border-radius: 8px;
+      overflow: hidden;
+    }
 
-#messageInput{
-width:100%;
-padding:12px;
-border:none;
-border-radius:8px;
-background:#383a40;
-color:white;
-}
+    .voteColumn {
+      background: #0d0d0d;
+      width: 50px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 0;
+      gap: 5px;
+    }
 
-</style>
+    .voteColumn button {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+    }
+
+    .postContent {
+      padding: 15px;
+      flex: 1;
+    }
+
+    .postImage {
+      width: 100%;
+      border-radius: 6px;
+      margin-top: 10px;
+    }
+
+    .genreTag {
+      font-size: 12px;
+      background: linear-gradient(to right, #ff914d, #ff6100);
+      padding: 3px 8px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 6px;
+    }
+
+    .createBtn {
+      background: linear-gradient(to right, #ff914d, #ff6100);
+      padding: 8px 14px;
+      border-radius: 6px;
+      text-decoration: none;
+      color: white;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+
+    .avatar {
+      width: 32px;
+      border-radius: 50%;
+      vertical-align: middle;
+      margin-right: 10px;
+    }
+  </style>
 </head>
 
 <body>
-
-<div id="loginScreen">
-<button id="googleLogin">Login with Google</button>
-</div>
-
-<div id="app">
-
-<div id="layout">
-
-<div id="sidebar">
-
-<h3>Direct Messages</h3>
-
-<div id="userList"></div>
-
-</div>
-
-<div id="chat">
-
-<div id="chatHeader">
-Select a user to start chatting
-</div>
-
-<div id="messages"></div>
-
-<div id="messageBar">
-<input id="messageInput" placeholder="Type message...">
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-
-import {
-getAuth,
-GoogleAuthProvider,
-signInWithPopup,
-onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
-import {
-getFirestore,
-collection,
-doc,
-getDoc,
-getDocs,
-addDoc,
-setDoc,
-query,
-where,
-onSnapshot,
-orderBy
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-const firebaseConfig = {
-apiKey: "AIzaSyBnT085eVcbqRiWG_ohyDFc6mShIqRcFOM",
-authDomain: "kavno-8e9ea.firebaseapp.com",
-projectId: "kavno-8e9ea",
-storageBucket: "kavno-8e9ea.firebasestorage.app",
-messagingSenderId: "978146900809",
-appId: "1:978146900809:web:15265ae75beca386353898"
-};
-
-const app = initializeApp(firebaseConfig);
-
-const auth = getAuth();
-const db = getFirestore();
-
-const provider = new GoogleAuthProvider();
-
-let currentDM=null;
-
-/* LOGIN */
-
-document.getElementById("googleLogin").onclick=()=>{
-
-signInWithPopup(auth,provider);
-
-};
-
-/* AUTH */
-
-onAuthStateChanged(auth,user=>{
-
-if(!user)return;
-
-document.getElementById("loginScreen").style.display="none";
-document.getElementById("app").style.display="block";
-
-loadUsers();
-
-});
-
-/* LOAD USERS FOR DM */
-
-async function loadUsers(){
-
-const usersSnap=await getDocs(collection(db,"users"));
-
-const list=document.getElementById("userList");
-
-list.innerHTML="";
-
-usersSnap.forEach(docSnap=>{
-
-const data=docSnap.data();
-
-if(docSnap.id===auth.currentUser.uid)return;
-
-const div=document.createElement("div");
-
-div.className="user";
-
-div.innerText=data.displayName;
-
-div.onclick=()=>openDM(docSnap.id,data.displayName);
-
-list.appendChild(div);
-
-});
-
-}
-
-/* OPEN DM */
-
-async function openDM(otherUID,name){
-
-document.getElementById("chatHeader").innerText=name;
-
-const q=query(collection(db,"dms"),where("members","array-contains",auth.currentUser.uid));
-
-const snap=await getDocs(q);
-
-let dmId=null;
-
-snap.forEach(d=>{
-
-const m=d.data().members;
-
-if(m.includes(otherUID))dmId=d.id;
-
-});
-
-if(!dmId){
-
-const newDM=await addDoc(collection(db,"dms"),{
-
-members:[auth.currentUser.uid,otherUID]
-
-});
-
-dmId=newDM.id;
-
-}
-
-currentDM=dmId;
-
-listenMessages(dmId);
-
-}
-
-/* SEND MESSAGE */
-
-document.getElementById("messageInput").addEventListener("keypress",async e=>{
-
-if(e.key==="Enter"){
-
-const text=e.target.value;
-
-if(!text||!currentDM)return;
-
-await addDoc(collection(db,"messages"),{
-
-dmId:currentDM,
-sender:auth.currentUser.uid,
-text:text,
-timestamp:Date.now()
-
-});
-
-e.target.value="";
-
-}
-
-});
-
-/* LISTEN FOR MESSAGES */
-
-function listenMessages(dmId){
-
-const q=query(
-collection(db,"messages"),
-where("dmId","==",dmId),
-orderBy("timestamp")
-);
-
-onSnapshot(q,snap=>{
-
-const messages=document.getElementById("messages");
-
-messages.innerHTML="";
-
-snap.forEach(docSnap=>{
-
-const m=docSnap.data();
-
-const div=document.createElement("div");
-
-div.className="message";
-
-div.innerHTML=
-"<span class='messageUser'>"+m.sender+":</span> "+m.text;
-
-messages.appendChild(div);
-
-});
-
-messages.scrollTop=messages.scrollHeight;
-
-});
-
-}
-
-</script>
-
+  <div class="navbar">
+    <div class="logo">KAVNO</div>
+    <div id="rightNav"></div>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <div>Home</div>
+      <div>Popular</div>
+      <div>Explore</div>
+    </div>
+
+    <div id="feed"></div>
+
+    <div class="rightbar">
+      <h4>About Kavno</h4>
+      <p>Post freely. Vote fairly.</p>
+    </div>
+  </div>
 </body>
 </html>
-```
